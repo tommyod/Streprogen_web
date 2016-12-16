@@ -1,0 +1,414 @@
+{% extends 'base.html' %}
+
+{% block title %}
+Edit {{ program.name }}
+{% endblock %}
+
+{% block content %}
+<script src="{{ url_for('static', filename='js/Chart.js') }}"></script>
+<script src="https://code.jquery.com/jquery-1.10.2.min.js"></script>
+
+
+<div class="row">
+<div class="col-sm-12">
+
+<h1>Create advanced program</h1>
+<p>If you are confused about the settings, play around with them and observe the effects.</p>
+<form class="form-horizontal form-inline" action="{{ url_for('newprogram') }}" method="post">
+
+<h2>Primary settings</h2>
+<input hidden name="days" value="{{ days }}">
+<input hidden name="main" value="{{ main }}">
+<input hidden name="extra" value="{{ extra }}">
+<p>Enter your program name, units, which value you want to round to, and duration.</p>
+<input id ="name" placeholder="Program name" class="input-sm form-control" size="36" maxlength="32" value="{{ program.name }}" name="name" type="text">
+
+<select name="units" class="input-sm form-control">
+ <option value="kg" {% if program.units == 'kg' %}selected{% endif %}>Kilograms</option>
+ <option value="lbs" {% if program.units == 'lbs' %}selected{% endif %}>Pounds</option>
+</select>
+
+<select name="round" class="input-sm form-control">
+ <option value="2.5" {% if program.units|string == '2.5' %}selected{% endif %}>2.5</option>
+ <option value="5" {% if program.units|string == '5' %}selected{% endif %}>5</option>
+ <option value="10" {% if program.units|string == '10' %}selected{% endif %}>10</option>
+</select>
+
+<select name="duration" class="input-sm form-control">
+ <option value="8" selected>8 weeks</option>
+</select>
+
+
+<hr>
+<p>Below is the structure of the program, the drop-down indidates the repetition range for the exercise.</p>
+{% for d, day in enumerate(program.days) %}
+<h3>Day {{ d+1}}</h3>
+    {% for m, mainex in enumerate(day.main_exercises) %}
+        <input value="{{ mainex.name }}" placeholder="Exercise name [Dynamic]" class="input-sm form-control" size="20" maxlength="26" name="{{ d }}-{{ m }}-main-name" type="text">
+        <input value="{{ mainex.current_max }}" placeholder="Current max" class="input-sm form-control" size="10" maxlength="3" name="{{ d }}-{{ m }}-initial" type="text">
+        <input value="{{ mainex.desired_max }}" placeholder="Desired max" class="input-sm form-control" size="10" maxlength="3" name="{{ d }}-{{ m }}-final" type="text">
+            <select name="{{ d }}-{{ m }}-lowreps" class="input-sm form-control">
+             <option value="8" {% if mainex.high_reps == 8 %}selected{% endif %}>8</option>
+             <option value="7" {% if mainex.high_reps == 7 %}selected{% endif %}>7</option>
+             <option value="6" {% if mainex.high_reps == 6 %}selected{% endif %}>6</option>
+             <option value="5" {% if mainex.high_reps == 5 %}selected{% endif %}>5</option>
+             <option value="4" {% if mainex.high_reps == 4 %}selected{% endif %}>4</option>
+            </select>
+
+            <select name="{{ d }}-{{ m }}-highreps" class="input-sm form-control">
+             <option value="5" {% if mainex.low_reps == 5 %}selected{% endif %}>5</option>
+             <option value="4" {% if mainex.low_reps == 4 %}selected{% endif %}>4</option>
+             <option value="3" {% if mainex.low_reps == 3 %}selected{% endif %}>3</option>
+             <option value="2" {% if mainex.low_reps == 2 %}selected{% endif %}>2</option>
+             <option value="1" {% if mainex.low_reps == 1 %}selected{% endif %}>1</option>
+            </select>
+
+        <input disabled class="input-sm form-control" size="4" id="{{ d }}-{{ m }}-percentage" type="text">
+
+        <br>
+
+    {% endfor %}
+
+    {% for e, extraex in enumerate(day.extra_exercises) %}
+    <input value="{{ extraex.name }}" placeholder="Exercise name [Static]" class="input-sm form-control" size="20" maxlength="26" name="{{ d }}-{{ e }}-extra-name" type="text">
+    <input value="{{ extraex.scheme }}" placeholder="Set X Reps" class="input-sm form-control" size="10" maxlength="15" name="{{ d }}-{{ e }}-scheme" type="text">
+    <br>
+    {% endfor %}
+
+{% endfor %}
+<hr>
+
+
+
+
+
+<h2>Settings</h2>
+<div class="row">
+    <div class="col-sm-5">
+    <h3>Non-linearity</h3>
+    <select id="nonlinearity" name="nonlinearity" class="input-sm form-control" style="width:180px;">
+        <option value="0" {% if program.nonlinearity == 0 %}selected{% endif %}>0%</option>
+        <option value="10" {% if program.nonlinearity == 10 %}selected{% endif %}>10%</option>
+        <option value="15" {% if program.nonlinearity == 15 %}selected{% endif %}>15%</option>
+        <option value="20" {% if program.nonlinearity == 20 %}selected{% endif %}>20%</option>
+    </select>
+    <p style="font-size: 14px;">To the right is the fundamental solution to the differential equation
+    governing the progression model. A non-linearity of 0% means that the progress
+    is the same every week, while a non-linearity of 20% strongly favors early progress.</p>
+    </div>
+    <div class="col-sm-7">
+    <canvas id="myChart_nonlinearity" height="150" style="width: 100%;"></canvas>
+    </div>
+</div>
+<hr>
+
+<div class="row">
+    <div class="col-sm-5">
+    <h3>Average intensity</h3>
+    <input hidden name="intensity" value="">
+    <select id="intensity" name="intensity_type" class="input-sm form-control" style="width:180px;">
+        <option value="constant_1"  {% if program.intensity_model == 'constant_1' %}selected{% endif %}>Constant 70%</option>
+        <option value="constant_2"  {% if program.intensity_model == 'constant_2' %}selected{% endif %}>Constant 72.5%</option>
+        <option value="constant_3"  {% if program.intensity_model == 'constant_3' %}selected{% endif %}>Constant 75%</option>
+        <option value="linear"      {% if program.intensity_model == 'linear' %}selected{% endif %}>Linear</option>
+        <option value="random"      {% if program.intensity_model == 'random' %}selected{% endif %}>Random</option>
+        <option value="sawtooth"    {% if program.intensity_model == 'sawtooth' %}selected{% endif %}>Sawtooth</option>
+        <option value="sinusoidal"  {% if program.intensity_model == 'sinusoidal' %}selected{% endif %}>Sinusoidal</option>
+    </select>
+    <p style="font-size: 14px;">How close to the maximum is the average repetition?
+    That is the average intensity. Control the average intensity throughout the program
+     using one of the models in the drop-down above.</p>
+
+    </div>
+
+    <div class="col-sm-7">
+    <canvas id="myChart_intensity" height="150" style="width: 100%;"></canvas>
+    </div>
+</div>
+<hr>
+
+<div class="row">
+    <div class="col-sm-5">
+    <h3>Reps - %RM relation</h3>
+    <select id="reps_RM" name="reps_RM" class="input-sm form-control" style="width:180px;">
+        <option value="relaxed" {% if program.reps_RM_model == 'relaxed' %}selected{% endif %}>Relaxed</option>
+        <option value="normal"  {% if program.reps_RM_model == 'normal' %}selected{% endif %}>Normal</option>
+        <option value="tight"   {% if program.reps_RM_model == 'tight' %}selected{% endif %}>Tight</option>
+    </select>
+    <p style="font-size: 14px;">The generator uses a relationship between the percentage of repetition maximum
+    and the number of reps a lifter can perform during exercise. You may choose any of the three models above.</p>
+    </div>
+    <div class="col-sm-7">
+    <canvas id="myChart_reps_RM" height="150" style="width: 100%;"></canvas>
+    </div>
+</div>
+<hr>
+
+<div class="row">
+    <div class="col-sm-5">
+    <h3>Repetitions</h3>
+    <select name="reps_per_week" class="input-sm form-control" style="width:180px;">
+    {% for reps in range(15,41,5) %}
+        <option value="{{ reps }}" {% if program.reps_per_week == reps %}selected{% endif %}>{{ reps }} reps / dyn. exercise</option>
+    {% endfor %}
+    </select>
+    <input hidden name="reps" value="">
+    <select id="reps" name="reps_type" class="input-sm form-control" style="width:180px;">
+        <option value="constant"    {% if program.reps_model == 'constant' %}selected{% endif %}>Constant</option>
+        <option value="linear"      {% if program.reps_model == 'linear' %}selected{% endif %}>Linear</option>
+        <option value="random_10"   {% if program.reps_model == 'random_10' %}selected{% endif %}>10% Randomness</option>
+        <option value="random_20"   {% if program.reps_model == 'random_20' %}selected{% endif %}>20% Randomness</option>
+        <option value="random_30"   {% if program.reps_model == 'random_30' %}selected{% endif %}>30% Randomness</option>
+        <option value="sawtooth"    {% if program.reps_model == 'sawtooth' %}selected{% endif %}>Sawtooth</option>
+        <option value="sinusoidal"  {% if program.reps_model == 'sinusoidal' %}selected{% endif %}>Sinusoidal</option>
+    </select>
+    <p style="font-size: 14px;">The number of repetitions per dynamic exercise.
+    Inject some randomness using one of the models in the drop-down if you wish.</p>
+    </div>
+
+    <div class="col-sm-7">
+    <canvas id="myChart_reps" height="150" style="width: 100%;"></canvas>
+    </div>
+</div>
+<hr>
+
+<script>
+var data_nonlinearity = {
+    labels: ['1', '2', '3', '4', '5', '6', '7', '8'],
+    datasets: [
+        {
+            label: "nonlinearity",
+            fillColor: "rgba(220,220,220,0.2)",
+            strokeColor: "rgba(220,220,220,1)",
+            pointColor: "rgba(220,220,220,1)",
+            pointStrokeColor: "#fff",
+            pointHighlightFill: "#fff",
+            pointHighlightStroke: "rgba(220,220,220,1)",
+            data: {{ program.k_list }}
+        }
+    ]
+};
+
+var data_intensity = {
+    labels: ['1', '2', '3', '4', '5', '6', '7', '8'],
+    datasets: [
+        {
+            label: "intensity",
+            fillColor: "rgba(220,220,220,0.2)",
+            strokeColor: "rgba(220,220,220,1)",
+            pointColor: "rgba(220,220,220,1)",
+            pointStrokeColor: "#fff",
+            pointHighlightFill: "#fff",
+            pointHighlightStroke: "rgba(220,220,220,1)",
+            data: {{ program.intensity_list }}
+        }
+    ]
+};
+
+var data_reps_RM = {
+    labels: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'],
+    datasets: [
+        {
+            label: "reps_RM",
+            fillColor: "rgba(220,220,220,0.2)",
+            strokeColor: "rgba(220,220,220,1)",
+            pointColor: "rgba(220,220,220,1)",
+            pointStrokeColor: "#fff",
+            pointHighlightFill: "#fff",
+            pointHighlightStroke: "rgba(220,220,220,1)",
+            data:
+            {% if program.reps_RM_model == 'normal' %}[97.5, 92.5, 87.5, 82.5, 77.5, 72.5, 67.5, 62.5, 57.5, 52.5]{% endif %}
+            {% if program.reps_RM_model == 'relaxed' %}[97.5, 91.9, 86.3, 80.6, 75.0, 69.4, 63.8, 58.1, 52.5, 46.9]{% endif %}
+            {% if program.reps_RM_model == 'tight' %}[97.5, 93.1, 88.8, 84.4, 80.0, 75.6, 71.3, 66.9, 62.5, 58.1]{% endif %}
+
+        }
+    ]
+};
+
+var data_reps = {
+    labels: ['1', '2', '3', '4', '5', '6', '7', '8'],
+    datasets: [
+        {
+            label: "reps_RM",
+            fillColor: "rgba(220,220,220,0.2)",
+            strokeColor: "rgba(220,220,220,1)",
+            pointColor: "rgba(220,220,220,1)",
+            pointStrokeColor: "#fff",
+            pointHighlightFill: "#fff",
+            pointHighlightStroke: "rgba(220,220,220,1)",
+            data: {{ program.reps_list }}
+        }
+    ]
+};
+
+var ctx_nonlin = document.getElementById("myChart_nonlinearity").getContext("2d");
+var myChart_nonlinearity = new Chart(ctx_nonlin).Line(data_nonlinearity);
+
+var ctx_int = document.getElementById("myChart_intensity").getContext("2d");
+var myChart_intensity = new Chart(ctx_int).Line(data_intensity,
+{scaleOverride: true, scaleStartValue: 68, scaleStepWidth: 1, scaleSteps: 10, bezierCurve : false});
+$('input[name=intensity]').attr("value", data_intensity.datasets[0].data);
+
+var ctx_reps_RM = document.getElementById("myChart_reps_RM").getContext("2d");
+var myChart_reps_RM = new Chart(ctx_reps_RM).Line(data_reps_RM,
+{scaleOverride: true, scaleStartValue: 50, scaleStepWidth: 5, scaleSteps: 10, bezierCurve : false});
+
+var ctx_reps = document.getElementById("myChart_reps").getContext("2d");
+var myChart_reps = new Chart(ctx_reps).Line(data_reps,
+{scaleOverride: true, scaleStartValue: 70, scaleStepWidth: 10, scaleSteps: 6, bezierCurve : false});
+$('input[name=reps]').attr("value", data_reps.datasets[0].data);
+
+
+$('#nonlinearity').change(function () {
+    var val = $('#nonlinearity').val();
+    myChart_nonlinearity.destroy();
+    if(val == '0'){
+    data_nonlinearity.datasets[0].data = [0, 14, 29, 43, 57, 71, 86, 100];
+    }
+    if(val == '10'){
+    data_nonlinearity.datasets[0].data = [0, 20, 37, 53, 67, 79, 90, 100];
+    }
+    if(val == '15'){
+    data_nonlinearity.datasets[0].data = [0, 23, 42, 58, 71, 82, 92, 100];
+    }
+    if(val == '20'){
+    data_nonlinearity.datasets[0].data = [0, 26, 47, 63, 75, 85, 93, 100];
+    }
+    myChart_nonlinearity = new Chart(ctx_nonlin).Line(data_nonlinearity);
+});
+
+$('#intensity').change(function () {
+    var val = $('#intensity').val();
+    myChart_intensity.destroy();
+    if(val == 'constant_1'){
+    data_intensity.datasets[0].data = [70, 70, 70, 70, 70, 70, 70, 70];
+    }
+    if(val == 'constant_2'){
+    data_intensity.datasets[0].data = [72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5, 72.5];
+    }
+    if(val == 'constant_3'){
+    data_intensity.datasets[0].data = [75, 75, 75, 75, 75, 75, 75, 75];
+    }
+    if(val == 'linear'){
+    data_intensity.datasets[0].data = [70.0, 70.7, 71.4, 72.1, 72.9, 73.6, 74.3, 75.0];
+    }
+    if(val == 'random'){
+    data_intensity.datasets[0].data = randombetween(70, 75, 8);
+    }
+    if(val == 'sawtooth'){
+    data_intensity.datasets[0].data = [72.5, 75.0, 72.5, 70.0, 72.5, 75.0, 72.5, 70.0];
+    }
+    if(val == 'sinusoidal'){
+    data_intensity.datasets[0].data = [70.7, 70.0, 70.7, 72.5, 74.3, 75.0, 74.3, 72.5];
+    }
+    $('input[name=intensity]').attr("value", data_intensity.datasets[0].data);
+    myChart_intensity = new Chart(ctx_int).Line(data_intensity,
+    {scaleOverride: true, scaleStartValue: 68, scaleStepWidth: 1, scaleSteps: 10, bezierCurve : false});
+});
+
+$('#reps_RM').change(function () {
+    var val = $('#reps_RM').val();
+    myChart_reps_RM.destroy();
+    if(val == 'tight'){
+    data_reps_RM.datasets[0].data = [97.5, 93.1, 88.8, 84.4, 80.0, 75.6, 71.3, 66.9, 62.5, 58.1];
+    }
+    if(val == 'normal'){
+    data_reps_RM.datasets[0].data = [97.5, 92.5, 87.5, 82.5, 77.5, 72.5, 67.5, 62.5, 57.5, 52.5];
+    }
+    if(val == 'relaxed'){
+    data_reps_RM.datasets[0].data = [97.5, 91.9, 86.3, 80.6, 75.0, 69.4, 63.8, 58.1, 52.5, 46.9];
+    }
+    myChart_reps_RM = new Chart(ctx_reps_RM).Line(data_reps_RM,
+    {scaleOverride: true, scaleStartValue: 50, scaleStepWidth: 5, scaleSteps: 10, bezierCurve : false});
+});
+
+
+
+$('#reps').change(function () {
+    var val = $('#reps').val();
+    myChart_reps.destroy();
+    if(val == 'constant'){
+    data_reps.datasets[0].data = [100, 100, 100, 100, 100, 100, 100, 100];
+    }
+    if(val == 'random_10'){
+    data_reps.datasets[0].data = randombetween(90, 110, 8);
+    }
+    if(val == 'random_20'){
+    data_reps.datasets[0].data = randombetween(80, 120, 8);
+    }
+    if(val == 'random_30'){
+    data_reps.datasets[0].data = randombetween(70, 130, 8);
+    }
+    if(val == 'linear'){
+    data_reps.datasets[0].data = [120.0, 114.3, 108.6, 102.9, 97.1, 91.4, 85.7, 80.0];
+    }
+    if(val == 'sawtooth'){
+    data_reps.datasets[0].data = [85.0, 100.0, 115.0, 100.0, 85.0, 100.0, 115.0, 100.0];
+    }
+    if(val == 'sinusoidal'){
+    data_reps.datasets[0].data = [100.0, 110.6, 115.0, 110.6, 100.0, 89.4, 85.0, 89.4];
+    }
+    $('input[name=reps]').attr("value", data_reps.datasets[0].data);
+    myChart_reps = new Chart(ctx_reps).Line(data_reps,
+    {scaleOverride: true, scaleStartValue: 70, scaleStepWidth: 10, scaleSteps: 6, bezierCurve : false});
+});
+
+function randombetween(low, high, length){
+    var arr = [];
+    for (var i=0; i<length; i++) {
+        arr.push(Math.round(low + Math.random() * (high-low)))
+    }
+    return arr
+
+}
+</script>
+
+
+
+<button type="submit" class="btn btn-default btn-sm form-control">Create program</button>
+
+</form>
+</div>
+</div>
+
+
+
+
+
+
+<script>
+{% for d in range(days|int) %}
+    {% for m in range(main|int) %}
+
+    $(document).ready(function() {
+        $(':input').bind('keypress keydown keyup change', function () {
+        var initial{{ d }}_{{ m }} = parseFloat($(':input[name="{{ d }}-{{ m }}-initial"]').val(), 10);
+        var ffinal{{ d }}_{{ m }}  = parseFloat($(':input[name="{{ d }}-{{ m }}-final"]').val(), 10);
+        var out{{ d }}_{{ m }} = '';
+        var v{{ d }}_{{ m }}  = '';
+        if (!isNaN(initial{{ d }}_{{ m }} ) && !isNaN(ffinal{{ d }}_{{ m }} )) {
+        v{{ d }}_{{ m }}  = Math.round((((ffinal{{ d }}_{{ m }}  / initial{{ d }}_{{ m }} ) * 100 - 100)/8)*10) / 10;
+        out{{ d }}_{{ m }}= v{{ d }}_{{ m }}.toString() + ' %';
+        }
+        if (v{{ d }}_{{ m }} > 4){
+        document.getElementById("{{ d }}-{{ m }}-percentage").style.color="#FC0000";
+        }else if(v{{ d }}_{{ m }} > 3){
+        document.getElementById("{{ d }}-{{ m }}-percentage").style.color="#DB2121";
+        }else if(v{{ d }}_{{ m }} > 2){
+        document.getElementById("{{ d }}-{{ m }}-percentage").style.color="#B33D3D";
+        }
+        else{
+        document.getElementById("{{ d }}-{{ m }}-percentage").style.color="#080808";
+        }
+
+        $(':input[id="{{ d }}-{{ m }}-percentage"]').val(out{{ d }}_{{ m }});
+        });
+    });
+
+    {% endfor %}
+{% endfor %}
+</script>
+
+
+
+{% endblock %}

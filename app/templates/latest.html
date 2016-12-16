@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+
+{% block title %}
+Latest programs
+{% endblock %}
+
+{% block content %}
+
+<h1>Latest programs</h1>
+<p>Below are the 20 most recent programs created.</p>
+<table class="table">
+    <tr>
+        <th>Name</th>
+        <th>Created</th>
+        <th>View</th>
+    </tr>
+    {% for program in programs %}
+      <tr>
+        <td>{{ program.pickle.name }}</td>
+        <td>{{ program.date_creation.strftime('%d-%b-%Y %H:%M:%S') }}</td>
+        <td><a href="{{ url_for('overview', unique_id=program.unique_id) }}">Click here</a></td>
+      </tr>
+    {% endfor %}
+</table>
+{% endblock %}

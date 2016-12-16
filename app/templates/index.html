@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block title %}
+Index
+{% endblock %}
+
+{% block content %}
+
+
+<div class="jumbotron">
+        <h2>Free, dynamic training programs</h2>
+        <p class="lead">
+        Sick of static training programs with 3x12 and 5x5 schemes? <br>
+        Create versatile training programs using <em>controlled randomness</em> <br>
+        and <em>powerful mathematical models</em>.
+        </p>
+        <p><a class="btn btn-success" href="{{ url_for('create') }}" role="button">Create program <i class="fa fa-angle-double-right"></i></a></p>
+      </div>
+
+      <div class="row marketing">
+        <div class="col-lg-6">
+          <h4><i class="fa fa-exchange"></i> Flexible</h4>
+          <p>Customize the number of days per week, number of exercises and nature of the exercises.</p>
+
+          <h4><i class="fa fa-bookmark-o"></i> Trackable</h4>
+          <p>Created programs are stored in a database. Using reference codes you will be able to find it again.</p>
+
+        </div>
+
+        <div class="col-lg-6">
+          <h4><i class="fa fa-bar-chart"></i> Powerful</h4>
+          <p>Based on differential equations, randomness and a decade of strength training knowledge.</p>
+
+          <h4><i class="fa fa-print"></i> Print-friendly</h4>
+          <p>Print the program from your browser, or bookmark it for your smartphone.</p>
+
+        </div>
+      </div>
+
+{% endblock %}

@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+
+{% block title %}
+Create
+{% endblock %}
+
+{% block content %}
+<h1>Create program</h1>
+<p>Create a new program by filling out the fields below.
+The required information is the numbers of training sessions per week,
+the number of dynamic exercises and the number of static exercises.</p>
+
+<div class="well well-sm">
+
+<form class="form-horizontal form-inline" action="{{ url_for('newprogram') }}" method="get">
+
+<div class="row">
+    <div class="col-sm-3">
+        <h4>Days/Week</h4>
+    </div>
+
+    <div class="col-sm-3">
+        <h4># of dynamic</h4>
+    </div>
+
+    <div class="col-sm-3">
+        <h4># of static</h4>
+    </div>
+    <div class="col-sm-3">
+        <button type="submit" name="type" value="simple" class="btn btn-success">Simple <i class="fa fa-angle-double-right"></i></button>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-sm-3">
+        <select name="days" class="form-control input-sm">
+          <option>1</option>
+          <option>2</option>
+          <option>3</option>
+          <option>4</option>
+          <option>5</option>
+        </select>
+    </div>
+
+    <div class="col-sm-3">
+        <select name="main" class="form-control input-sm">
+          <option>1</option>
+          <option>2</option>
+          <option>3</option>
+          <option>4</option>
+          <option>5</option>
+        </select>
+    </div>
+
+    <div class="col-sm-3">
+        <select name="extra" class="form-control input-sm">
+          <option>0</option>
+          <option>1</option>
+          <option>2</option>
+          <option>3</option>
+          <option>4</option>
+          <option>5</option>
+        </select>
+    </div>
+    <div class="col-sm-3">
+        <button type="submit" name="type" value="advanced" class="btn btn-success">Advanced <i class="fa fa-angle-double-right"></i></button>
+    </div>
+
+
+</div>
+
+</form>
+</div>
+<p><strong>Simple</strong> defaults to sensible values for the models, <strong>advanced</strong> gives you the full control.</p>
+
+{% endblock %}

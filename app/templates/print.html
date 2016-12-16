@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>Print {{ program.name }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootswatch.css') }}"  media="all">
+</head>
+<body>
+<div class="container">
+<div class="row">
+
+<div class="col-sm-12">
+<h2>{{ program.name }} [{{ unique_id }}]</h2>
+<p>Reference code: <u>{{ unique_id }}</u>. Retrieve this program at http://strengthprogramgenerator.com/overview/{{ unique_id }}</p>
+<h3>Information</h3>
+<div class="row">
+    <div class="col-sm-8">
+        <table class="table">
+            <tr>
+                <th>Name</th>
+                <th>Initial</th>
+                <th>Final</th>
+                <th>Max rep</th>
+                <th>Min rep</th>
+            </tr>
+            {% for mainex in program.iter_exercises() %}
+              <tr>
+                <td>{{ mainex.name }}</td>
+                <td>{{ mainex.current_max }}</td>
+                <td>{{ mainex.desired_max }}</td>
+                <td>{{ mainex.high_reps }}</td>
+                <td>{{ mainex.low_reps }}</td>
+              </tr>
+            {% endfor %}
+        </table>
+    </div>
+</div>
+
+
+
+
+{% for week in range(1, program.duration+1) %}
+    <h3>Week {{ week }}</h3>
+    {% for d, day in enumerate(program.days) %}
+    <h4>&nbsp; Day {{ d+1 }}</h4>
+        {% for mainex in day.main_exercises %}
+        <div class="row" style="padding-bottom: 5px;">
+            <div class="col-sm-3">&nbsp; &nbsp; &nbsp;{{ mainex.name }}</div>
+            <div class="col-sm-9">{{ program.rendered[week][mainex][0] }}</div>
+        </div>
+        {% endfor %}
+        {% for extraex in day.extra_exercises %}
+        <div class="row" style="padding-bottom: 5px;">
+            <div class="col-sm-3">&nbsp; &nbsp; &nbsp;{{ extraex.name }}</div>
+            <div class="col-sm-9">{{ extraex.scheme }}</div>
+        </div>
+        {% endfor %}
+    {% endfor %}
+{% endfor %}
+</div>
+
+
+
+
+</div>
+</div>
+</body>
+</html>

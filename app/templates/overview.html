@@ -1,0 +1,175 @@
+{% extends 'base.html' %}
+
+{% block title %}
+{{ program.pickle.name }}
+{% endblock %}
+
+{% block content %}
+<script src="{{ url_for('static', filename='js/Chart.js') }}"></script>
+<script src="https://code.jquery.com/jquery-1.10.2.min.js"></script>
+
+
+<div class="row">
+<div class="col-sm-8"><h3>{{ program.pickle.name }}</h3></div>
+<div class="col-sm-4"><h3 class="text-muted pull-right">{{ program.unique_id }}</h3></div>
+</div>
+<p class="small text-muted">Created {{ program.date_creation.strftime('%d-%b-%Y') }}.</p>
+<hr>
+
+
+<div class="row">
+<div class="col-sm-12">
+<a href="{{ url_for('edit', unique_id=program.unique_id) }}" class="btn btn-info"><i class="fa fa-files-o"></i> Copy and edit</a>
+<span class="pull-right">
+<a href="{{ url_for('Print', unique_id=program.unique_id) }}" target="_blank" class="btn btn-primary"><i class="fa fa-print"></i> Print</a>
+</span></div>
+</div>
+<hr>
+
+<h3>Settings</h3>
+<div class="row">
+<div class="col-sm-3"><h5><strong>Units: </strong>{{ program.pickle.units }}</h5></div>
+<div class="col-sm-3"><h5><strong>Round to: </strong>{{ program.pickle.round }} {{ program.pickle.units }}</h5></div>
+<div class="col-sm-3"><h5><strong>Duration: </strong>{{ program.pickle.duration }} weeks</h5></div>
+<div class="col-sm-3"><h5><strong>Reps: </strong>{{ program.pickle.reps_per_week|int }}</h5></div>
+</div>
+<hr>
+
+
+<h3>Statistics</h3>
+<div class="row">
+    <div class="col-sm-5">
+    <h4>Total weight lifted</h4>
+    <p>Total weight lifted for each training session, given in {{ program.pickle.units }}.</p>
+    </div>
+<div class="col-sm-7">
+    <canvas id="myChart_total_weight" height="150" style="width: 100%;"></canvas>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-sm-5">
+    <h4>Reps on the heaviest set</h4>
+    <p>The number of reps lifted on the heaviest set for each exercise, throughout the entire
+    program.</p>
+    </div>
+<div class="col-sm-7">
+    <canvas id="myChart_reps_heaviest" height="150" style="width: 100%;"></canvas>
+    </div>
+</div>
+
+
+
+
+
+
+
+<script>
+var data_total_weight = {
+    labels: ['1', '2', '3', '4', '5', '6', '7', '8'],
+    datasets: [
+            {% for day in program.pickle.days %}
+            {
+            label: "My Second dataset",
+            fillColor: "rgba(151,187,205,0.5)",
+            strokeColor: "rgba(151,187,205,0.8)",
+            highlightFill: "rgba(151,187,205,0.75)",
+            highlightStroke: "rgba(151,187,205,1)",
+            data: {{program.pickle._stats_total_lifted(day)}}
+        }{% if not loop.last %}, {% endif %}
+            {% endfor %}
+    ]
+};
+var ctx_total_weight = document.getElementById("myChart_total_weight").getContext("2d");
+var barChar_total_weight = new Chart(ctx_total_weight).Bar(data_total_weight);
+
+var data_reps_heaviest = {
+    labels: ['1', '2', '3', '4', '5', '6', '7', '8'],
+    datasets: [
+            {% for mainex in program.pickle.iter_exercises() %}
+
+            {
+            label: "My Second dataset",
+            fillColor: "rgba(151,187,205,0.5)",
+            strokeColor: "rgba(151,187,205,0.8)",
+            highlightFill: "rgba(151,187,205,0.75)",
+            highlightStroke: "rgba(151,187,205,1)",
+            data: {{ program.pickle._stats_reps_heaviest(mainex) }}
+        }{% if not loop.last %}, {% endif %}
+        {% endfor %}
+    ]
+};
+var ctx_reps_heaviest = document.getElementById("myChart_reps_heaviest").getContext("2d");
+var barChar_reps_heaviest = new Chart(ctx_reps_heaviest).Bar(data_reps_heaviest);
+</script>
+
+
+
+
+
+
+
+
+
+<hr>
+<div class="row">
+<div class="col-sm-12">
+<h3>Information</h3>
+<div class="row">
+    <div class="col-sm-12">
+        <table class="table">
+            <tr>
+                <th>Name</th>
+                <th>Initial</th>
+                <th>Final</th>
+                <th>Max rep</th>
+                <th>Min rep</th>
+            </tr>
+            {% for mainex in program.pickle.iter_exercises() %}
+              <tr>
+                <td>{{ mainex.name }}</td>
+                <td>{{ mainex.current_max }}</td>
+                <td>{{ mainex.desired_max }}</td>
+                <td>{{ mainex.high_reps }}</td>
+                <td>{{ mainex.low_reps }}</td>
+              </tr>
+            {% endfor %}
+        </table>
+    </div>
+</div>
+
+
+
+
+{% for week in range(1, program.pickle.duration+1) %}
+    <h3>Week {{ week }}</h3>
+    {% for d, day in enumerate(program.pickle.days) %}
+    <h4>&nbsp; Day {{ d+1 }}</h4>
+        {% for mainex in day.main_exercises %}
+        <div class="row" style="padding-bottom: 5px;">
+            <div class="col-sm-4">&nbsp; &nbsp; &nbsp;{{ mainex.name }}</div>
+            <div class="col-sm-8">{{ program.pickle.rendered[week][mainex][0] }}</div>
+        </div>
+        {% endfor %}
+        {% for extraex in day.extra_exercises %}
+        <div class="row" style="padding-bottom: 5px;">
+            <div class="col-sm-4">&nbsp; &nbsp; &nbsp;{{ extraex.name }}</div>
+            <div class="col-sm-8">{{ extraex.scheme }}</div>
+        </div>
+        {% endfor %}
+    {% endfor %}
+{% endfor %}
+</div>
+
+
+
+
+</div>
+
+
+
+
+
+
+
+{% endblock %}

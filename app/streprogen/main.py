@@ -228,16 +228,17 @@ def render(exercise, program, week):
     for s in range(render_times):
         reps = create_reps(low_reps, high_reps, reps_total)
         intensity = [program.reps_RM[rep] for rep in reps]
-        error = abs(get_MI(reps, intensity) - desired_MI) + 5*loss_measure(reps)
+        err_1 = abs(get_MI(reps, intensity) - desired_MI) # Deviation from MI
+        err_2 = 100*loss_measure(reps) # Spread of the reps
+        err_3 = abs(low_reps - min(reps)) # Punishes staying away from low reps
+        error = err_1 + err_2 + err_3
         suggestions.append((reps, intensity, error))
 
-    suggestions.sort(key=lambda a:a[2])
+    # Choose the rep string with the minimum error
+    reps, intensity, error = min(suggestions, key=lambda a:a[2])
 
-    chosen = suggestions[0]# random.choice(suggestions[0:10])
-
-    reps, intensity, error = chosen
-
-    current_max = S(program.k, week, exercise.desired_max, exercise.current_max, 1, 8)
+    current_max = S(program.k, week, exercise.desired_max, 
+                    exercise.current_max, 1, program.duration)
     weights = [round_to_nearest((inten/100)*current_max, program.round) for inten in intensity]
 
     return reps, intensity, weights
@@ -349,3 +350,26 @@ def create_reps(low, high, num):
 
     return_list.sort(reverse=True)
     return return_list
+    
+
+    
+if __name__ == '__main__':
+    ex = DynamicExercise('exercise', 100, 200, 1, 8)
+    d = Day()
+    program = Program(name='test',
+                      units = 'kg', 
+                      round = 2.5, 
+                      duration = 8, 
+                      nonlinearity = 0.1, 
+                      intensity_list = '70,70,70,70,70,70,70,70', 
+                      intensity_model = 'none', 
+                      reps_list = '70,70,70,70,70,70,70,70', 
+                      reps_model = 'none', 
+                      reps_per_week = 30, 
+                      reps_RM = 'tight')
+    
+    d.add_main(ex)
+    program.days = [d]
+    program.render()
+    program.print_it()
+    

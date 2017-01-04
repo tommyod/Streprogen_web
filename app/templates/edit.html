@@ -35,7 +35,9 @@ Edit {{ program.name }}
 </select>
 
 <select name="duration" class="input-sm form-control">
- <option value="8" selected>8 weeks</option>
+ <option value="4" {% if program.duration|string == '4' %}selected{% endif %}>4</option>
+ <option value="8" {% if program.duration|string == '8' %}selected{% endif %}>8</option>
+ <option value="12" {% if program.duration|string == '12' %}selected{% endif %}>12</option>
 </select>
 
 

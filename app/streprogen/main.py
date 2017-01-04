@@ -372,4 +372,5 @@ if __name__ == '__main__':
     program.days = [d]
     program.render()
     program.print_it()
+    print('')
     

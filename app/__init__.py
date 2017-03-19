@@ -39,7 +39,7 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 app = Flask(__name__)
 
 #app.config['CSRF_ENABLED'] = True
-app.config['SECRET_KEY'] = '5d6d3e2u8d5g2D4S5DSF2sdf5s1df531sef'
+app.config['SECRET_KEY'] = random_string(10)
 
 # If running on Heroku
 if 'DYNO' in os.environ:

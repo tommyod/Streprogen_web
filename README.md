@@ -1,4 +1,4 @@
-# **Str**ength **pro**gram **gen**erator
+# Strength program generator
 
 A flask based generator for creating dynamic workout programs.
 

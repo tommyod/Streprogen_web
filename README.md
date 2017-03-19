@@ -1,10 +1,10 @@
-# *Str*ength *pro*gram *gen*erator
+# **Str**ength **pro**gram **gen**erator
 
 A flask based generator for creating dynamic workout programs.
 
 Requirements:
 
-* Python 3.X (tested on Python 3.5)
+* Python 3.X (*tested on Python 3.5*)
 
 ## Local setup
 

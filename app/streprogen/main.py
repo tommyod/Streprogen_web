@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+# Imports
 from __future__ import division
 from collections import defaultdict
 import random
@@ -282,12 +283,12 @@ def render(exercise, program, week):
 
 
 
-def loss_measure(someList):
+def loss_measure(iterable):
     """
     Measures spread. The lower the better. Between 0 and 1.
     """
-    diff = [(someList[i] - someList[i + 1]) ** 2 for i in range(len(someList) - 1)]
-    worst = (max(someList) - min(someList)) ** 2
+    diff = [(iterable[i] - iterable[i + 1]) ** 2 for i in range(len(iterable) - 1)]
+    worst = (max(iterable) - min(iterable)) ** 2
     if worst == 0:
         return 1
     return sum(diff) / worst
@@ -301,15 +302,20 @@ def to_list(inputvalue):
     return [float(i) for i in inputvalue.split(',')]
 
 def get_MI(reps, intensities):
-    upper = sum([i*j for i, j in zip(reps, intensities)])
-    return upper/sum(reps)
+    """
+    Return the average intensity.
+    """
+    return sum([i*j for i, j in zip(reps, intensities)])/sum(reps)
 
-def S(k, t, S_m, S_i, t_i, t_m):
+def S(k, t, S_m, S_i, t_i, t_m, sine_wave = False):
     """
     Returns the current strength level from linearly adjusted differential eq.
     """
     a = (t_i - t) / (t_m - t_i)
-    return (S_i - S_m) * math.exp(a * k) + S_m + a * (S_i - S_m) * math.exp(-k)
+    ans = (S_i - S_m) * math.exp(a * k) + S_m + a * (S_i - S_m) * math.exp(-k)
+    if not sine_wave:
+        return ans
+    return (1 + 0.025* math.sin(t*2*math.pi/(t_m-t_i))) * ans
 
 
 def round_to_nearest(number, nearest):
@@ -324,18 +330,27 @@ def round_to_nearest(number, nearest):
 
 
 def list_of_random(low, high, num):
+    """
+    Create a list with NUM integers between LOW and HIGH,
+    such that no two adjacent numbers are the same.
+    """
     if abs(low-high) < 1:
         return [low for i in range(num)]
     return_list = [random.randint(low, high)]
-    i = 0
+
     for i in range(num-1):
         try_value = random.randint(low, high)
         while try_value == return_list[i]:
             try_value = random.randint(low, high)
         return_list.append(try_value)
+    
     return return_list
 
+
 def create_reps(low, high, num):
+    """
+    Return a sorted list of NUM repetitions between LOW and HIGH.
+    """
     return_list = []
     taken = 0
     while True:
@@ -373,4 +388,29 @@ if __name__ == '__main__':
     program.render()
     program.print_it()
     print('')
+    
+    
+    
+    
+    import matplotlib.pyplot as plt
+    
+    k = 0.2
+    S_m, S_i, t_i, t_m = 110, 100, 1, 8
+    x = list(range(1, 9))
+    y = [S(k, t, S_m, S_i, t_i, t_m, sine_wave = True) for t in x]
+    plt.plot(x,y)
+    plt.grid(True)
+    plt.show()
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     

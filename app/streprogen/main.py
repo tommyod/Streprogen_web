@@ -5,6 +5,7 @@ from __future__ import division
 from collections import defaultdict
 import random
 import math
+import warnings
 
 
 class DynamicExercise(object):
@@ -46,7 +47,10 @@ class Day(object):
         return str(self.__dict__)
 
     def add_main(self, exercise):
-        self.main_exercises.append(exercise)
+        if isinstance(exercise, list):
+            self.main_exercises += exercise
+        else:
+            self.main_exercises.append(exercise)
 
     def add_extra(self, exercise):
         self.extra_exercises.append(exercise)
@@ -56,9 +60,11 @@ class Program(object):
     """
     Object for the Program.
     """
+    
+    _latex_template_path = 'latex_template.txt'
 
     def __init__(self, name, units, round, duration, nonlinearity, intensity_list, intensity_model,
-                 reps_list, reps_model, reps_per_week, reps_RM):
+                 reps_list, reps_model, reps_per_exercise, reps_RM):
         self.name = name
         self.units = units
         self.round = float(round)
@@ -73,7 +79,7 @@ class Program(object):
         self.reps_list = to_list(reps_list)
         self.k_list = [S(self.k, w, 100, 0, 1, self.duration) for w in range(1,self.duration+1)]
         self.reps_model = reps_model
-        self.reps_per_week = float(reps_per_week)
+        self.reps_per_week = float(reps_per_exercise)
         self.reps_RM_model = reps_RM.lower()
         reps_RM = reps_RM.lower()
         if reps_RM == 'normal':
@@ -168,13 +174,14 @@ class Program(object):
         """
         Debugging function.
         """
-        print('printing')
+        print('Printing: "{}"'.format(self.name))
         for week in range(1, self.duration+1):
             print('Week {}'.format(week))
             for i, day in enumerate(self.days):
-                print('Day {}'.format(i))
+                print('Day {}'.format(i+1))
                 for mainex in day.main_exercises:
-                    print(self.rendered[week][mainex][0])
+                    print(mainex.name, self.rendered[week][mainex][0])
+            print('')
 
 
 
@@ -210,6 +217,64 @@ class Program(object):
             if len(list(set(container))) != 1:
                 return 'exercise'
         return 'day'
+    
+    def to_latex(self):
+        SEP = '&'
+        return_string = ''
+    
+        # ------------
+        # -- HEADER
+        # ------------
+        return_string += '\section*{' + self.name +'}\n'
+    
+        return_string += '\\begin{tabular}{l|llll} \n \
+        \\textbf{Exercise} & \\textbf{Initial} & \\textbf{Final} \
+        & \\textbf{Low} & \\textbf{High} \\\ \hline \n'
+    
+        for i, day in enumerate(self.days):
+            for mainex in day.main_exercises:
+                return_string += '&'.join([str(j) for j in 
+                                          [mainex.name, 
+                                          mainex.current_max, 
+                                          mainex.desired_max, 
+                                          mainex.low_reps, 
+                                          mainex.high_reps]]) + '\\\ \n'
+        
+    
+    
+        return_string += '\end{tabular} \n'
+        
+        # ------------
+        # -- Body
+        # ------------
+        
+        for week in range(1, self.duration+1):
+            return_string += '\section*{Week ' + str(week) + '}\n'
+        
+            for i, day in enumerate(self.days):
+                return_string += '\subsection*{Day ' + str(i+1) + '}\n'
+                table_width = max(self.rendered[week][mainex][0].count('|')
+                for mainex in day.main_exercises) + 1
+                
+                if table_width >= 7:
+                    warnings.warn('Table width may overflow in LaTeX.')
+                    
+                return_string += '\\begin{tabular}{l|' + 'l'*table_width + '}\n \\textbf{Exercise} & \\textbf{Reps} \\\ \hline \n'
+            
+                for mainex in day.main_exercises:
+                    missing = table_width - self.rendered[week][mainex][0].count('|') -1
+                    return_string += (mainex.name + SEP + 
+                                      self.rendered[week][mainex][0].replace('|', SEP) + SEP*missing + '\\\ \n')
+                    
+                return_string += '\end{tabular} \n'
+           
+            
+        with open(self._latex_template_path, 'r', encoding = 'utf-8') as file:
+            latex_code = '\n'.join(list(line.strip() for line in file))
+            return_string = return_string.replace(self.units, '')
+            return latex_code.replace('CONTENTHERE', return_string)
+        print (return_string.replace(self.units, ''))
+        
 
 
 
@@ -299,6 +364,8 @@ def to_list(inputvalue):
     """
     Takes a string to a list, separated by commas.
     """
+    if isinstance(inputvalue, list):
+        return inputvalue
     return [float(i) for i in inputvalue.split(',')]
 
 def get_MI(reps, intensities):
@@ -369,7 +436,8 @@ def create_reps(low, high, num):
 
     
 if __name__ == '__main__':
-    ex = DynamicExercise('exercise', 100, 200, 1, 8)
+    # Web driven test
+    ex = DynamicExercise('Benkpress', 100, 200, 1, 8)
     d = Day()
     program = Program(name='test',
                       units = 'kg', 
@@ -380,7 +448,7 @@ if __name__ == '__main__':
                       intensity_model = 'none', 
                       reps_list = '70,70,70,70,70,70,70,70', 
                       reps_model = 'none', 
-                      reps_per_week = 30, 
+                      reps_per_exercise = 30, 
                       reps_RM = 'tight')
     
     d.add_main(ex)
@@ -389,18 +457,38 @@ if __name__ == '__main__':
     program.print_it()
     print('')
     
+    # Local LaTeX rendering
+    program = Program(name='TommyJuni17',
+                      units = 'kg', 
+                      round = 2.5, 
+                      duration = 8, 
+                      nonlinearity = 0.1, 
+                      intensity_list = [68,72,74,71,68,73,71,75], 
+                      intensity_model = 'none', 
+                      reps_list = '70,70,70,70,70,70,70,70', 
+                      reps_model = 'none', 
+                      reps_per_exercise = 35, 
+                      reps_RM = 'tight')
+    
+    day1 = Day()
+    ex1 = DynamicExercise('Tung bøy', 100, 120, 3, 6)
+    ex2 = DynamicExercise('Smalbenk', 130, 140, 2, 7)
+    ex3 = DynamicExercise('Militærpress', 60, 80, 4, 8)
+    day1.add_main([ex1, ex2, ex3])
+    
+    day2 = Day()
+    ex1 = DynamicExercise('Lett bøy', 80, 100, 5, 8)
+    ex2 = DynamicExercise('Chin ups', 95+50, 95+65, 3, 8)
+    ex3 = DynamicExercise('Benkpress', 135, 145, 2, 6)
+    day2.add_main([ex1, ex2, ex3])
     
     
-    
-    import matplotlib.pyplot as plt
-    
-    k = 0.2
-    S_m, S_i, t_i, t_m = 110, 100, 1, 8
-    x = list(range(1, 9))
-    y = [S(k, t, S_m, S_i, t_i, t_m, sine_wave = True) for t in x]
-    plt.plot(x,y)
-    plt.grid(True)
-    plt.show()
+    program.days = [day1, day2]
+    program.render()
+    program.print_it()
+    print('--')
+    latex_code = program.to_latex()
+    print(latex_code)
     
     
     

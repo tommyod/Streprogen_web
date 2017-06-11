@@ -77,18 +77,44 @@ class Program(object):
     
     _latex_template_path = 'latex_template.txt'
 
-    def __init__(self, name, units, round, duration, nonlinearity, intensity_list, intensity_model,
-                 reps_list, reps_model, reps_per_exercise, reps_RM):
+    def __init__(self, name, units = 'kg', round_to = 2.5, weeks = 6, 
+                 nonlinearity = 0.1, intensity_list = None, 
+                 intensity_model = None, reps_list = None, reps_model = None, 
+                 reps_per_exercise = 25, reps_RM = 'tight'):
+        """
+        Initalize a new training program.
+        
+        Parameters
+        ----------
+        name : Name of the program.
+        units : Units, using ´kg´ og ´lbs´ makes sense.
+        round_to : Round to this number, e.g. 2.5.
+        weeks : Number of weeks.
+        nonlinearity : Number between 0 and 0.2
+        intensity_list : List of intensities, should be of length ´week´
+                            with average value at around 75.
+        intensity_model : Deprecated.
+        reps_list : List of factors to scale the reps. Of length ´week´,
+                    where each entry should be close to 100.
+        reps_model : Deprecated.
+        reps_per_exercise : Repetitions per exercise.
+        reps_RM : normal, relaxed or ´tight´
+        """
         self.name = name
         self.units = units
-        self.round = float(round)
-        self.duration = int(duration)
+        self.round = float(round_to)
+        self.duration = int(weeks)
         self.nonlinearity = int(nonlinearity)
+        
         if float(self.nonlinearity) == 0:
             self.k = 0.001
         else:
             self.k = 0.1 * float(nonlinearity)
-        self.intensity_list = to_list(intensity_list)
+            
+        if intensity_list is None:
+            self.intensity_list = [random.randint(70,80) for i in range(self.duration)]
+        else:
+            self.intensity_list = to_list(intensity_list)
         self.intensity_model = intensity_model
         self.reps_list = to_list(reps_list)
         self.k_list = [S(self.k, w, 100, 0, 1, self.duration) for w in range(1,self.duration+1)]
@@ -472,8 +498,8 @@ if __name__ == '__main__':
     d = Day()
     program = Program(name='test',
                       units = 'kg', 
-                      round = 2.5, 
-                      duration = 8, 
+                      round_to = 2.5, 
+                      weeks = 8, 
                       nonlinearity = 0.1, 
                       intensity_list = '70,70,70,70,70,70,70,70', 
                       intensity_model = 'none', 
@@ -493,8 +519,8 @@ if __name__ == '__main__':
     # ----------------------------------------------------------------
     program = Program(name='TommyJuni17',
                       units = 'kg', 
-                      round = 2.5, 
-                      duration = 8, 
+                      round_to = 2.5, 
+                      weeks = 8, 
                       nonlinearity = 0.1, 
                       intensity_list = [68,72,74,71,68,73,71,75], 
                       intensity_model = 'none', 
@@ -527,8 +553,8 @@ if __name__ == '__main__':
     # A simple program
     program = Program(name='simple_test',
                       units = 'kg', 
-                      round = 2.5, 
-                      duration = 4, 
+                      round_to = 2.5, 
+                      weeks = 4, 
                       nonlinearity = 0.1, 
                       intensity_list = [68,72,74,71,68,73,71,70], 
                       intensity_model = 'none', 
@@ -538,7 +564,7 @@ if __name__ == '__main__':
                       reps_RM = 'tight')
     
     day1 = Day()
-    ex1 = DynamicExercise('Tung bøy', 100, 120, 3, 6)
+    ex1 = DynamicExercise('Tung bøy', 100, 120, 2, 5)
     day1.add_main(ex1)
     
     program.add_day(day1)

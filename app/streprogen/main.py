@@ -12,12 +12,26 @@ class DynamicExercise(object):
     """
     Object for Dynamic Exercises.
     """
-    def __init__(self, name, current_max, desired_max, low_reps, high_reps):
+    def __init__(self, name, current_max, desired_max, 
+                 low_reps = 3, high_reps = 8, reps = None):
+        """
+        Initalize a new dynamic exercise.
+        
+        Parameters
+        ----------
+        name : Name of the exercise.
+        current_max : Current maximum.
+        desired_max : Desired maximum.
+        low_reps : Lowest number of reps.
+        high_reps : Highest number of reps.
+        reps : Total reps, if None global from program is used.
+        """
         self.name = name
         self.current_max = int(current_max)
         self.desired_max = int(desired_max)
         self.low_reps = int(low_reps)
         self.high_reps = int(high_reps)
+        self.reps = reps
 
     def __repr__(self):
         return str(self.__dict__)
@@ -79,7 +93,7 @@ class Program(object):
         self.reps_list = to_list(reps_list)
         self.k_list = [S(self.k, w, 100, 0, 1, self.duration) for w in range(1,self.duration+1)]
         self.reps_model = reps_model
-        self.reps_per_week = float(reps_per_exercise)
+        self.reps_per_exercise = float(reps_per_exercise)
         self.reps_RM_model = reps_RM.lower()
         reps_RM = reps_RM.lower()
         if reps_RM == 'normal':
@@ -92,6 +106,12 @@ class Program(object):
 
         self.days = []
         self.rendered = False
+        
+    def add_day(self, day):
+        if isinstance(day, list):
+            self.days += day
+        else:
+            self.days.append(day)
 
     def _set_maxima(self):
         """
@@ -139,7 +159,7 @@ class Program(object):
             self.rendered[week] = defaultdict(int)
             for i, day in enumerate(self.days):
                 for mainex in day.main_exercises:
-                    reps, intensity, weights = render(mainex, self, week)
+                    reps, intensity, weights = type(self).render_dynamic_exericse(mainex, self, week)
                     self.rendered[week][mainex] = (' | '.join([str(r)+' x '+str(w)+self.units for r, w in zip(reps, weights)]),
                                                    (reps, intensity, weights))
 
@@ -277,37 +297,46 @@ class Program(object):
         
 
 
+    @staticmethod
+    def render_dynamic_exericse(exercise, program, week):
+        """
+        Stand-alone function for rendering.
+        
+        Renders a dynamic exercise, return three lists of
+        reps, intensities and weights for a given dynamic
+        exercise in a given week.
+        """
+        low_reps = program.maxima[exercise][week-1]
+        high_reps = exercise.high_reps
+        
+        # Set the reps based on the exercise, or globally fromt he program
+        if exercise.reps is None:
+            reps_total = int(program.reps_per_exercise * (program.reps_list[week-1]/100))
+        else:
+            reps_total = int(exercise.reps * (program.reps_list[week-1]/100))
+        desired_MI = program.intensity_list[week-1]
+    
+        suggestions = []
+        render_times = 25
+        # Going from render_times = 1 to render_times = 10 halves the total error,
+        # going to 25 seems to be a reasonable compromise.
+        for s in range(render_times):
+            reps = create_reps(low_reps, high_reps, reps_total)
+            intensity = [program.reps_RM[rep] for rep in reps]
+            err_1 = abs(get_MI(reps, intensity) - desired_MI) # Deviation from MI
+            err_2 = 100*loss_measure(reps) # Spread of the reps
+            err_3 = abs(low_reps - min(reps)) # Punishes staying away from low reps
+            error = err_1 + err_2 + err_3
+            suggestions.append((reps, intensity, error))
+    
+        # Choose the rep string with the minimum error
+        reps, intensity, error = min(suggestions, key=lambda a:a[2])
+    
+        current_max = S(program.k, week, exercise.desired_max, 
+                        exercise.current_max, 1, program.duration)
+        weights = [round_to_nearest((inten/100)*current_max, program.round) for inten in intensity]
 
-def render(exercise, program, week):
-    """
-    Stand-alone function for rendering.
-    """
-    low_reps = program.maxima[exercise][week-1]
-    high_reps = exercise.high_reps
-    reps_total = int(program.reps_per_week * (program.reps_list[week-1]/100))
-    desired_MI = program.intensity_list[week-1]
-
-    suggestions = []
-    render_times = 25
-    # Going from render_times = 1 to render_times = 10 halves the total error,
-    # going to 25 seems to be a reasonable compromise.
-    for s in range(render_times):
-        reps = create_reps(low_reps, high_reps, reps_total)
-        intensity = [program.reps_RM[rep] for rep in reps]
-        err_1 = abs(get_MI(reps, intensity) - desired_MI) # Deviation from MI
-        err_2 = 100*loss_measure(reps) # Spread of the reps
-        err_3 = abs(low_reps - min(reps)) # Punishes staying away from low reps
-        error = err_1 + err_2 + err_3
-        suggestions.append((reps, intensity, error))
-
-    # Choose the rep string with the minimum error
-    reps, intensity, error = min(suggestions, key=lambda a:a[2])
-
-    current_max = S(program.k, week, exercise.desired_max, 
-                    exercise.current_max, 1, program.duration)
-    weights = [round_to_nearest((inten/100)*current_max, program.round) for inten in intensity]
-
-    return reps, intensity, weights
+        return reps, intensity, weights
 
 
 
@@ -436,7 +465,9 @@ def create_reps(low, high, num):
 
     
 if __name__ == '__main__':
-    # Web driven test
+    # ----------------------------------------------------------------
+    # ---------------- Web driven test
+    # ----------------------------------------------------------------
     ex = DynamicExercise('Benkpress', 100, 200, 1, 8)
     d = Day()
     program = Program(name='test',
@@ -457,7 +488,9 @@ if __name__ == '__main__':
     program.print_it()
     print('')
     
-    # Local LaTeX rendering
+    # ----------------------------------------------------------------
+    # ---------------- Local LaTeX rendering
+    # ----------------------------------------------------------------
     program = Program(name='TommyJuni17',
                       units = 'kg', 
                       round = 2.5, 
@@ -489,6 +522,28 @@ if __name__ == '__main__':
     print('--')
     latex_code = program.to_latex()
     print(latex_code)
+    
+    
+    # A simple program
+    program = Program(name='simple_test',
+                      units = 'kg', 
+                      round = 2.5, 
+                      duration = 4, 
+                      nonlinearity = 0.1, 
+                      intensity_list = [68,72,74,71,68,73,71,70], 
+                      intensity_model = 'none', 
+                      reps_list = '100,100,100,100', 
+                      reps_model = 'none', 
+                      reps_per_exercise = 20, 
+                      reps_RM = 'tight')
+    
+    day1 = Day()
+    ex1 = DynamicExercise('Tung bøy', 100, 120, 3, 6)
+    day1.add_main(ex1)
+    
+    program.add_day(day1)
+    program.render()
+    program.print_it()
     
     
     
